@@ -431,7 +431,7 @@ class ProjectAnalytics(models.Model):
             ('analytic_distribution', '!=', False),
             ('parent_state', '=', 'posted'),
             ('move_id.move_type', 'in', ['out_invoice', 'out_refund']),
-            ('display_type', '=', False),  # Exclude section/note lines
+            ('display_type', 'not in', ['line_section', 'line_note']),  # Exclude section/note lines
         ])
 
         _logger.info(f"Found {len(invoice_lines)} potential invoice lines (before analytic filter)")
@@ -550,7 +550,7 @@ class ProjectAnalytics(models.Model):
             ('analytic_distribution', '!=', False),
             ('parent_state', '=', 'posted'),
             ('move_id.move_type', 'in', ['in_invoice', 'in_refund']),
-            ('display_type', '=', False),  # Exclude section/note lines
+            ('display_type', 'not in', ['line_section', 'line_note']),  # Exclude section/note lines
         ])
 
         _logger.info(f"Found {len(bill_lines)} potential bill lines (before analytic filter)")
