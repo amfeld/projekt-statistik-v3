@@ -7,7 +7,7 @@ _logger = logging.getLogger(__name__)
 
 class ProjectAnalytics(models.Model):
     _inherit = 'project.project'
-    _description = _('Project Analytics Extension')
+    _description = 'Project Analytics Extension'
 
     client_name = fields.Char(
         string='Name of Client',
