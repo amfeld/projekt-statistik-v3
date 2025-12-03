@@ -21,6 +21,7 @@
         'hr_timesheet',
         'timesheet_grid',
         'sale',
+        'sale_project',  # Required for project_id field on sale.order
     ],
     'author': 'Alex Feld',
     'license': 'LGPL-3',
