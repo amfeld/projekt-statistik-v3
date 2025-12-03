@@ -189,7 +189,7 @@ class ProjectAnalytics(models.Model):
         help="Total project losses as a positive number, NET basis (Verluste Netto). This shows the absolute value of negative profit/loss. If profit/loss is positive, this field is 0. Useful for tracking and reporting total losses."
     )
 
-    @api.depends('partner_id', 'user_id')
+    @api.depends()
     def _compute_financial_data(self):
         """
         Compute all financial data for the project based on analytic account lines.
@@ -201,9 +201,13 @@ class ProjectAnalytics(models.Model):
         for customer invoices and vendor bills. Profit/Loss is calculated on NET basis for
         accurate accounting (comparing apples to apples).
 
-        Note: We depend on partner_id and user_id (guaranteed core fields) rather than
-        account_id or sale_line_id which may not exist if certain modules aren't installed.
-        The actual financial data is computed from account.analytic.line records.
+        Note: We use @api.depends() (empty) to avoid caching issues. The fields will be
+        recomputed when:
+        1. account.move.line records with analytic_distribution change (via hooks in account_move_line.py)
+        2. Manual trigger via the "Refresh Financial Data" wizard
+        3. Explicit call to _compute_financial_data()
+
+        This approach ensures data is always fresh when invoices, bills, or timesheets change.
         """
         for project in self:
             # Initialize all fields
