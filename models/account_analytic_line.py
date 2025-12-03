@@ -41,10 +41,15 @@ class AccountAnalyticLine(models.Model):
         """
         Trigger recomputation of project analytics when analytic lines (timesheets) change.
 
+        IMPORTANT: This method uses cache invalidation instead of commits to maintain
+        transactional integrity. The actual recomputation happens within the same
+        transaction as the analytic line changes.
+
         Optimizations:
         - Batch processing
         - Error handling per batch
         - Deduplication of project IDs
+        - Cache invalidation for fresh data
 
         Args:
             lines: Recordset of account.analytic.line records that changed
@@ -102,33 +107,36 @@ class AccountAnalyticLine(models.Model):
             _logger.error(f"Error collecting projects for analytics recompute (analytic lines): {e}", exc_info=True)
             return
 
-        # Batch process projects
+        # Process projects and invalidate cache
         if project_ids:
             project_ids_list = list(project_ids)
-            chunk_size = 50
+            chunk_size = 100
             total_projects = len(project_ids_list)
 
-            _logger.info(f"Triggering recompute for {total_projects} project(s) after analytic line change")
+            _logger.info(f"Invalidating cache and triggering recompute for {total_projects} project(s) after analytic line change")
 
             for i in range(0, total_projects, chunk_size):
                 chunk = project_ids_list[i:i + chunk_size]
                 chunk_projects = self.env['project.project'].browse(chunk)
 
                 try:
+                    # CRITICAL: Invalidate cache first to ensure fresh data
+                    chunk_projects.invalidate_recordset()
+
                     # Recompute financial data for this batch
+                    # This happens within the current transaction
                     chunk_projects._compute_financial_data()
 
-                    # Commit after each batch
-                    if not self.env.context.get('defer_commit'):
-                        self.env.cr.commit()
+                    # NO COMMIT HERE! We stay within the user's transaction
+                    # The data will be committed when the user's operation completes
 
-                    _logger.info(f"Recomputed financial data for {len(chunk_projects)} project(s) (analytic lines)")
+                    _logger.debug(f"Recomputed financial data for {len(chunk_projects)} project(s) (analytic lines)")
 
                 except Exception as e:
+                    # Log error but don't break the user's transaction
                     _logger.error(
                         f"Error recomputing financial data for projects {chunk}: {e}",
                         exc_info=True
                     )
-                    if not self.env.context.get('defer_commit'):
-                        self.env.cr.rollback()
+                    # NO ROLLBACK HERE! Let Odoo handle transaction rollback if needed
                     continue

@@ -20,6 +20,9 @@ class RefreshFinancialDataWizard(models.TransientModel):
     def action_refresh_data(self):
         """
         Update the system parameter with the new hourly rate and refresh financial data.
+
+        This method runs synchronously in the user's request context.
+        Cache invalidation ensures we read the latest data from the database.
         """
         self.ensure_one()
 
@@ -37,7 +40,13 @@ class RefreshFinancialDataWizard(models.TransientModel):
             # If no specific projects selected, refresh all
             projects = self.env['project.project'].search([])
 
+        # CRITICAL: Invalidate cache to ensure fresh data
+        # This forces Odoo to read from DB instead of using cached values
+        projects.invalidate_recordset()
+
         # Trigger recomputation
+        # This happens within the current transaction and will be committed
+        # when the wizard completes successfully
         projects._compute_financial_data()
 
         # Show success notification
