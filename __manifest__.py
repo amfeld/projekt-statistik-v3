@@ -16,9 +16,11 @@
     'depends': [
         'project',
         'account',
-        'accountant', 
+        'accountant',
         'analytic',
         'hr_timesheet',
+        'timesheet_grid',
+        'sale',
     ],
     'author': 'Alex Feld',
     'license': 'LGPL-3',
