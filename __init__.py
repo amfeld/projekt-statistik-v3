@@ -16,6 +16,9 @@ def uninstall_hook(env):
 
     # 1. Remove computed stored fields from database
     fields_to_remove = [
+        # Currency field
+        'currency_id',
+
         # Status fields
         'has_analytic_account',
         'data_availability_status',

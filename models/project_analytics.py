@@ -9,6 +9,16 @@ class ProjectAnalytics(models.Model):
     _inherit = 'project.project'
     _description = 'Project Analytics Extension'
 
+    # Currency field for monetary widgets
+    currency_id = fields.Many2one(
+        'res.currency',
+        string='Currency',
+        related='company_id.currency_id',
+        store=True,
+        readonly=True,
+        help="Currency used for all monetary fields in this project. Automatically set from company currency."
+    )
+
     client_name = fields.Char(
         string='Name of Client',
         related='partner_id.name',

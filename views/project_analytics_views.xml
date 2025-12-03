@@ -12,6 +12,9 @@
                             help="Recalculate financial data with configurable hourly rate"/>
                 </header>
 
+                <!-- Hidden currency field for monetary widget -->
+                <field name="currency_id" invisible="1"/>
+
                 <!-- Sequence for manual drag&drop sorting (handle icon only, not displayed as column) -->
                 <field name="sequence" widget="handle"/>
 
@@ -60,13 +63,13 @@
 
                 <!-- Labor - Original -->
                 <field name="total_hours_booked" sum="Total Hours" optional="show"
-                       widget="float_time" width="120px" string="Hours Booked"/>
+                       digits="[16, 2]" width="120px" string="Hours Booked"/>
                 <field name="labor_costs" sum="Total Labor Costs" optional="hide"
                        widget="monetary" width="140px" string="Labor Costs"/>
 
                 <!-- Labor - Adjusted (with HFC Factor) - MAIN COLUMNS -->
                 <field name="total_hours_booked_adjusted" sum="Total Hours (Adjusted)" optional="show"
-                       widget="float_time" decoration-bf="1" width="140px"
+                       digits="[16, 2]" decoration-bf="1" width="140px"
                        string="Hours (Adjusted)"/>
                 <field name="labor_costs_adjusted" sum="Labor Costs (Adjusted)" optional="show"
                        widget="monetary" decoration-bf="1" width="160px"
@@ -195,6 +198,9 @@
                         </h3>
                     </div>
 
+                    <!-- Hidden currency field for monetary widgets -->
+                    <field name="currency_id" invisible="1"/>
+
                     <!-- Data Availability Warning -->
                     <div class="alert alert-danger" role="alert" invisible="data_availability_status == 'available'">
                         <strong>⚠️ No Financial Data Available</strong><br/>
@@ -287,14 +293,14 @@
 
                         <page string="⏱️ Labor &amp; Internal Costs" name="labor">
                             <group>
-                                <group string="Time Tracking">
-                                    <field name="total_hours_booked" widget="float_time"
+                                <group string="Time Tracking (Industrial Minutes)">
+                                    <field name="total_hours_booked" digits="[16, 2]"
                                            string="Total Hours Booked"/>
                                     <field name="labor_costs" widget="monetary"
                                            string="Labor Costs (Original)"/>
                                 </group>
                                 <group string="Adjusted Calculations (with HFC Factor)">
-                                    <field name="total_hours_booked_adjusted" widget="float_time"
+                                    <field name="total_hours_booked_adjusted" digits="[16, 2]"
                                            string="Total Hours (Adjusted)" decoration-bf="1"/>
                                     <field name="labor_costs_adjusted" widget="monetary"
                                            string="Labor Costs (Adjusted)" decoration-bf="1"/>
@@ -397,7 +403,7 @@
                 <field name="account_id" optional="show" width="200px"/>
                 <field name="partner_id" optional="show" width="200px"/>
                 <field name="product_id" optional="hide" width="200px"/>
-                <field name="unit_amount" optional="show" sum="Total Quantity" widget="float_time" width="120px"/>
+                <field name="unit_amount" optional="show" sum="Total Quantity" digits="[16, 2]" width="120px" string="Hours (Industrial)"/>
                 <field name="amount" optional="show" sum="Total Amount (Net)" widget="monetary" decoration-bf="1" width="150px"/>
                 <field name="currency_id" optional="hide"/>
                 <field name="company_id" optional="hide" groups="base.group_multi_company"/>
