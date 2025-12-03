@@ -26,6 +26,8 @@
         'security/ir.model.access.csv',
         'data/ir_config_parameter.xml',
         'views/project_analytics_views.xml',
+        'wizard/refresh_financial_data_wizard_views.xml',
+        'views/hr_employee_views.xml',
         'data/menuitem.xml',
     ],
     'installable': True,

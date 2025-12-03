@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Wizard View -->
+    <record id="view_refresh_financial_data_wizard_form" model="ir.ui.view">
+        <field name="name">refresh.financial.data.wizard.form</field>
+        <field name="model">refresh.financial.data.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Refresh Financial Data">
+                <group>
+                    <group>
+                        <field name="general_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                    </group>
+                </group>
+                <div class="alert alert-info" role="alert">
+                    <strong>What does this do?</strong>
+                    <ul>
+                        <li>Updates the general hourly rate used for adjusted labor cost calculations</li>
+                        <li>Recalculates all financial data for the selected projects</li>
+                        <li>Adjusted Labor Costs = Total Hours Booked (Adjusted) × General Hourly Rate</li>
+                    </ul>
+                    <p><em>Note: The hourly rate is saved as a system parameter and will be used for future calculations.</em></p>
+                </div>
+                <footer>
+                    <button name="action_refresh_data" string="Refresh Data" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Wizard Action -->
+    <record id="action_refresh_financial_data_wizard" model="ir.actions.act_window">
+        <field name="name">Refresh Financial Data</field>
+        <field name="res_model">refresh.financial.data.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="project.model_project_project"/>
+        <field name="binding_view_types">list,form</field>
+    </record>
+</odoo>
