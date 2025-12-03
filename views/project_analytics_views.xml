@@ -1,0 +1,443 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Custom list view for projects in account module -->
+    <record id="view_project_list_account_analytics" model="ir.ui.view">
+        <field name="name">project.project.list.account.analytics</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <list string="Project Statistics" create="false" edit="false" delete="false" limit="500" default_order="sequence,id">
+                <header>
+                    <button name="action_refresh_financial_data" type="object" string="Refresh Financial Data" class="btn-primary"/>
+                </header>
+
+                <!-- Sequence for manual drag&drop sorting (handle icon only, not displayed as column) -->
+                <field name="sequence" widget="handle"/>
+
+                <!-- Basic Information -->
+                <field name="client_name" width="200px"/>
+                <field name="display_name" width="250px"/>
+                <field name="head_of_project" width="150px"/>
+
+                <!-- Data Availability Status -->
+                <field name="data_availability_status" widget="badge"
+                       decoration-success="data_availability_status == 'available'"
+                       decoration-danger="data_availability_status == 'no_analytic_account'"
+                       optional="show" width="120px"/>
+
+                <!-- Customer Invoice Fields - NET (primary) -->
+                <field name="customer_invoiced_amount_net" sum="Total Invoiced (Net)" optional="show"
+                       widget="monetary" decoration-bf="1" width="140px"/>
+                <field name="customer_paid_amount_net" sum="Total Paid (Net)" optional="show"
+                       widget="monetary" width="140px"/>
+                <field name="customer_outstanding_amount_net" sum="Total Outstanding (Net)" optional="show"
+                       widget="monetary" decoration-danger="customer_outstanding_amount_net != 0" width="140px"/>
+
+                <!-- Customer Invoice Fields - GROSS (dunkelgrau) -->
+                <field name="customer_invoiced_amount_gross" sum="Total Invoiced (Gross)" optional="hide"
+                       widget="monetary" class="text-muted" decoration-muted="customer_invoiced_amount_gross or not customer_invoiced_amount_gross" width="140px"/>
+                <field name="customer_paid_amount_gross" sum="Total Paid (Gross)" optional="hide"
+                       widget="monetary" class="text-muted" decoration-muted="customer_paid_amount_gross or not customer_paid_amount_gross" width="140px"/>
+                <field name="customer_outstanding_amount_gross" sum="Total Outstanding (Gross)" optional="hide"
+                       widget="monetary" class="text-muted" decoration-muted="customer_outstanding_amount_gross or not customer_outstanding_amount_gross" width="140px"/>
+
+                <!-- Skonto -->
+                <field name="customer_skonto_taken" sum="Total Cash Discounts Granted" optional="hide"
+                       widget="monetary" width="140px"/>
+
+                <!-- Vendor Bills - NET (primary) -->
+                <field name="vendor_bills_total_net" sum="Total Vendor Bills (Net)" optional="show"
+                       widget="monetary" decoration-bf="1" width="140px"/>
+
+                <!-- Vendor Bills - GROSS (dunkelgrau) -->
+                <field name="vendor_bills_total_gross" sum="Total Vendor Bills (Gross)" optional="hide"
+                       widget="monetary" class="text-muted" decoration-muted="vendor_bills_total_gross or not vendor_bills_total_gross" width="140px"/>
+
+                <field name="vendor_skonto_received" sum="Total Cash Discounts Received" optional="hide"
+                       widget="monetary" width="140px"/>
+
+                <!-- Labor -->
+                <field name="total_hours_booked" sum="Total Hours" optional="show"
+                       widget="float_time" width="100px"/>
+                <field name="labor_costs" sum="Total Labor Costs" optional="show"
+                       widget="monetary" width="140px"/>
+                <field name="total_hours_booked_adjusted" sum="Total Hours (Adjusted)" optional="show"
+                       widget="float_time" width="120px"/>
+                <field name="labor_costs_adjusted" sum="Labor Costs (Adjusted)" optional="show"
+                       widget="monetary" decoration-bf="1" width="140px"/>
+
+                <!-- Other Costs -->
+                <field name="other_costs_net" sum="Other Costs (Net)" optional="hide"
+                       widget="monetary" width="140px"/>
+
+                <!-- Total Cost Fields - NET -->
+                <field name="total_costs_net" sum="Total Costs Net" optional="show"
+                       widget="monetary" decoration-bf="1" width="140px"/>
+
+                <!-- Profitability - NET -->
+                <field name="profit_loss_net" sum="Total Profit/Loss (Net)" optional="show"
+                       widget="monetary" decoration-bf="1"
+                       decoration-success="profit_loss_net &gt; 0"
+                       decoration-danger="profit_loss_net &lt; 0" width="140px"/>
+                <field name="negative_difference_net" sum="Total Losses (Net)" optional="hide"
+                       widget="monetary" width="140px"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_project_pivot_account_analytics" model="ir.ui.view">
+        <field name="name">project.project.pivot.account.analytics</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <pivot string="Project Statistics Pivot">
+                <!-- Customer Invoice Measures - NET (primary) -->
+                <field name="customer_invoiced_amount_net" type="measure"/>
+                <field name="customer_paid_amount_net" type="measure"/>
+                <field name="customer_outstanding_amount_net" type="measure"/>
+
+                <!-- Customer Invoice Measures - GROSS -->
+                <field name="customer_invoiced_amount_gross" type="measure"/>
+                <field name="customer_paid_amount_gross" type="measure"/>
+                <field name="customer_outstanding_amount_gross" type="measure"/>
+
+                <field name="customer_skonto_taken" type="measure"/>
+
+                <!-- Vendor Bill Measures - NET (primary) -->
+                <field name="vendor_bills_total_net" type="measure"/>
+
+                <!-- Vendor Bill Measures - GROSS -->
+                <field name="vendor_bills_total_gross" type="measure"/>
+
+                <field name="vendor_skonto_received" type="measure"/>
+
+                <!-- Labor Measures -->
+                <field name="total_hours_booked" type="measure"/>
+                <field name="labor_costs" type="measure"/>
+
+                <!-- Other Costs -->
+                <field name="other_costs_net" type="measure"/>
+
+                <!-- Cost Measures - NET -->
+                <field name="total_costs_net" type="measure"/>
+
+                <!-- Profitability Measures - NET -->
+                <field name="profit_loss_net" type="measure"/>
+                <field name="negative_difference_net" type="measure"/>
+
+                <!-- Dimension fields - available for grouping -->
+                <field name="name" type="row"/>
+                <field name="client_name"/>
+                <field name="stage_id"/>
+                <field name="user_id"/>
+                <field name="partner_id"/>
+                <field name="company_id"/>
+                <field name="create_date" interval="month"/>
+                <field name="date_start" interval="month"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- Graph view for visual analytics -->
+    <record id="view_project_graph_account_analytics" model="ir.ui.view">
+        <field name="name">project.project.graph.account.analytics</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <graph string="Project Statistics Chart" type="bar" sample="1">
+                <field name="name"/>
+                <field name="customer_invoiced_amount_net" type="measure"/>
+                <field name="vendor_bills_total_net" type="measure"/>
+                <field name="total_costs_net" type="measure"/>
+                <field name="profit_loss_net" type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Form view for drill-down details -->
+    <record id="view_project_form_account_analytics" model="ir.ui.view">
+        <field name="name">project.project.form.account.analytics</field>
+        <field name="model">project.project</field>
+        <field name="arch" type="xml">
+            <form string="Project Details" create="false" edit="false" delete="false">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_account_analytic_line"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-pencil-square-o"
+                                string="Analytic Entries"
+                                help="Show all analytic entries assigned to this project"/>
+                        <button name="action_open_standard_project_form"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-tasks"
+                                string="Project Details"
+                                help="Open the standard project view"/>
+                        <button name="action_refresh_financial_data"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-refresh"
+                                string="Refresh Data"
+                                help="Recalculate all financial data"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <!-- Data Availability Warning -->
+                    <div class="alert alert-danger" role="alert" invisible="data_availability_status == 'available'">
+                        <strong>⚠️ No Financial Data Available</strong><br/>
+                        This project has no analytic account assigned. All financial fields show 0.00 €.<br/><br/>
+                        <strong>To activate financial data:</strong>
+                        <ol>
+                            <li>Enable "Analytic Accounting" in accounting settings</li>
+                            <li>Assign an analytic account to this project (Plan: Projects)</li>
+                            <li>Ensure invoice lines have "Analytic Distribution" set</li>
+                        </ol>
+                    </div>
+                    <field name="data_availability_status" invisible="1"/>
+                    <field name="has_analytic_account" invisible="1"/>
+
+                    <group>
+                        <group name="project_info" string="Project Information">
+                            <field name="client_name"/>
+                            <field name="head_of_project"/>
+                            <field name="partner_id"/>
+                            <field name="user_id"/>
+                            <field name="stage_id"/>
+                        </group>
+                        <group name="dates" string="Time Periods">
+                            <field name="date_start"/>
+                            <field name="date"/>
+                            <field name="create_date"/>
+                        </group>
+                    </group>
+
+                    <!-- Summary section with NET/GROSS comparison -->
+                    <group string="Financial Summary">
+                        <group string="NET Amounts (Main View)">
+                            <field name="data_availability_status" widget="badge"
+                                   decoration-success="data_availability_status == 'available'"
+                                   decoration-danger="data_availability_status == 'no_analytic_account'"/>
+                            <field name="customer_invoiced_amount_net" widget="monetary"
+                                   decoration-bf="1"/>
+                            <field name="vendor_bills_total_net" widget="monetary"
+                                   decoration-bf="1"/>
+                            <field name="total_costs_net" widget="monetary"
+                                   decoration-bf="1"/>
+                            <field name="profit_loss_net" widget="monetary"
+                                   decoration-success="profit_loss_net &gt; 0"
+                                   decoration-danger="profit_loss_net &lt; 0"
+                                   decoration-bf="1"/>
+                        </group>
+                        <group string="GROSS Amounts (with VAT)">
+                            <field name="customer_invoiced_amount_gross" widget="monetary"
+                                   decoration-muted="1"/>
+                            <field name="vendor_bills_total_gross" widget="monetary"
+                                   decoration-muted="1"/>
+                            <label for="total_hours_booked" string="Work Hours"/>
+                            <field name="total_hours_booked" widget="float_time" nolabel="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Customer Invoices" name="customer_invoices">
+                            <group>
+                                <group string="NET Amounts (without VAT)">
+                                    <field name="customer_invoiced_amount_net" widget="monetary"
+                                           decoration-bf="1"/>
+                                    <field name="customer_paid_amount_net" widget="monetary"/>
+                                    <field name="customer_outstanding_amount_net" widget="monetary"
+                                           decoration-danger="customer_outstanding_amount_net &gt; 0"/>
+                                </group>
+                                <group string="GROSS Amounts (with VAT)">
+                                    <field name="customer_invoiced_amount_gross" widget="monetary"
+                                           decoration-muted="1"/>
+                                    <field name="customer_paid_amount_gross" widget="monetary"
+                                           decoration-muted="1"/>
+                                    <field name="customer_outstanding_amount_gross" widget="monetary"
+                                           decoration-muted="1"
+                                           decoration-danger="customer_outstanding_amount_gross &gt; 0"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Cash Discounts &amp; Rebates">
+                                    <field name="customer_skonto_taken" widget="monetary"/>
+                                </group>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Note:</strong> NET amounts are the main amounts for profit calculation.
+                                GROSS amounts (dark gray) show total amounts incl. VAT for cash flow analysis.
+                                Paid amounts are distributed proportionally across all invoice lines.
+                            </div>
+                        </page>
+
+                        <page string="Vendor Bills" name="vendor_bills">
+                            <group>
+                                <group string="NET Amounts (without VAT)">
+                                    <field name="vendor_bills_total_net" widget="monetary"
+                                           decoration-bf="1"/>
+                                </group>
+                                <group string="GROSS Amounts (with VAT)">
+                                    <field name="vendor_bills_total_gross" widget="monetary"
+                                           decoration-muted="1"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Cash Discounts &amp; Rebates">
+                                    <field name="vendor_skonto_received" widget="monetary"/>
+                                </group>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Note:</strong> NET amounts are the main amounts for profit calculation.
+                                GROSS amounts (dark gray) show total amounts incl. VAT.
+                                Received cash discounts reduce the effective costs.
+                            </div>
+                        </page>
+
+                        <page string="Costs" name="costs">
+                            <group>
+                                <group string="Internal Costs (NET)">
+                                    <field name="labor_costs" widget="monetary"
+                                           decoration-bf="1"/>
+                                    <field name="other_costs_net" widget="monetary"/>
+                                    <field name="total_costs_net" widget="monetary"
+                                           decoration-bf="1"/>
+                                </group>
+                                <group string="Labor Costs">
+                                    <field name="total_hours_booked" widget="float_time"/>
+                                    <label for="labor_costs" string="Labor Costs"/>
+                                    <div class="text-muted">
+                                        <field name="labor_costs" widget="monetary" nolabel="1" readonly="1"/>
+                                    </div>
+                                </group>
+                            </group>
+                            <div class="alert alert-info" role="alert">
+                                <strong>Cost Breakdown (NET):</strong>
+                                <ul>
+                                    <li><strong>Vendor Bills:</strong> External costs (see "Vendor Bills" tab)</li>
+                                    <li><strong>Labor Costs:</strong> Time tracking × hourly rate (NET)</li>
+                                    <li><strong>Other Costs:</strong> Other internal entries (NET)</li>
+                                    <li><strong>Total Costs Net:</strong> Labor costs + Other costs (excluding vendor bills)</li>
+                                </ul>
+                                <p><em>Note: All internal costs are NET amounts (without VAT)</em></p>
+                            </div>
+                        </page>
+
+                        <page string="Profitability" name="profitability">
+                            <group>
+                                <group string="Profit/Loss (NET Basis)">
+                                    <field name="profit_loss_net" widget="monetary"
+                                           decoration-success="profit_loss_net &gt; 0"
+                                           decoration-danger="profit_loss_net &lt; 0"
+                                           decoration-bf="1"/>
+                                    <field name="negative_difference_net" widget="monetary"/>
+                                </group>
+                            </group>
+                            <div class="alert alert-success" role="alert">
+                                <strong>Calculation Formula (NET Basis):</strong><br/>
+                                <code>
+                                    Profit/Loss (Net) =
+                                    (Customer Invoices Net - Cash Discounts Granted) -
+                                    (Vendor Bills Net - Cash Discounts Received + Internal Costs Net)
+                                </code>
+                                <br/><br/>
+                                <strong>Why NET Basis?</strong>
+                                <ul>
+                                    <li>✅ VAT is a pass-through item (we collect and remit)</li>
+                                    <li>✅ NET-to-NET comparison is accounting-correct</li>
+                                    <li>✅ Shows true project profitability without tax distortion</li>
+                                </ul>
+                                <br/>
+                                <strong>Interpretation:</strong>
+                                <ul>
+                                    <li><strong>Positive Value:</strong> Project is profitable ✓</li>
+                                    <li><strong>Negative Value:</strong> Project is loss-making ✗</li>
+                                </ul>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Custom list view for analytic lines with NET amounts -->
+    <record id="view_account_analytic_line_list_enhanced" model="ir.ui.view">
+        <field name="name">account.analytic.line.list.enhanced</field>
+        <field name="model">account.analytic.line</field>
+        <field name="arch" type="xml">
+            <list string="Analytic Entries" create="false" edit="false">
+                <field name="date" optional="show"/>
+                <field name="name" optional="show" width="300px"/>
+                <field name="account_id" optional="show" width="200px"/>
+                <field name="partner_id" optional="show" width="200px"/>
+                <field name="product_id" optional="hide" width="200px"/>
+                <field name="unit_amount" optional="show" sum="Total Quantity" widget="float_time" width="120px"/>
+                <field name="amount" optional="show" sum="Total Amount (Net)" widget="monetary" decoration-bf="1" width="150px"/>
+                <field name="currency_id" optional="hide"/>
+                <field name="company_id" optional="hide" groups="base.group_multi_company"/>
+                <field name="move_line_id" optional="hide" width="200px"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Window action for project analytics -->
+    <record id="action_project_analytics_report" model="ir.actions.act_window">
+        <field name="name">Project Statistics</field>
+        <field name="res_model">project.project</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_project_list_account_analytics')}),
+            (0, 0, {'view_mode': 'pivot', 'view_id': ref('view_project_pivot_account_analytics')}),
+            (0, 0, {'view_mode': 'graph', 'view_id': ref('view_project_graph_account_analytics')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_project_form_account_analytics')})
+        ]"/>
+        <field name="domain">[]</field>
+        <field name="context">{}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No projects found</p>
+            <p>This view shows all projects for analysis and reporting purposes with detailed customer and vendor tracking.</p>
+            <p><strong>NET vs. GROSS:</strong></p>
+            <ul>
+                <li><strong>NET Amounts:</strong> Main amounts for profit calculation (without VAT)</li>
+                <li><strong>GROSS Amounts (dark gray):</strong> Total amounts for cash flow analysis (with VAT)</li>
+            </ul>
+        </field>
+    </record>
+
+    <!-- Inherit standard project form to add analytics button -->
+    <record id="view_project_form_inherit_analytics_button" model="ir.ui.view">
+        <field name="name">project.project.form.inherit.analytics.button</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_open_analytics_form"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-line-chart"
+                        string="Financial Analysis"
+                        help="Show detailed financial analysis with NET/GROSS comparison"
+                        groups="project.group_project_user"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Add menu item in Accounting or Project menu -->
+    <menuitem id="menu_project_analytics_accounting"
+              name="Project Statistics"
+              parent="account.menu_finance_reports"
+              action="action_project_analytics_report"
+              sequence="50"
+              groups="account.group_account_readonly"/>
+
+    <menuitem id="menu_project_analytics_project"
+              name="Financial Analysis"
+              parent="project.menu_project_report"
+              action="action_project_analytics_report"
+              sequence="10"
+              groups="project.group_project_user"/>
+</odoo>
