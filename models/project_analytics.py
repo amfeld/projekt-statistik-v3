@@ -55,6 +55,21 @@ class ProjectAnalytics(models.Model):
         help="Shows whether financial data is available for this project. 'No Analytic Account' means the project is not configured for financial tracking."
     )
 
+    # Sales Order fields (from linked sale orders)
+    sale_order_amount_net = fields.Float(
+        string='Sales Orders (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Total amount (NET) of all confirmed sales orders linked to this project. Only includes orders in 'sale' or 'done' state."
+    )
+    sale_order_tax_names = fields.Char(
+        string='SO Tax Codes',
+        compute='_compute_financial_data',
+        store=True,
+        help="Tax codes used in confirmed sales orders linked to this project. Multiple taxes are shown as comma-separated values."
+    )
+
     # Customer Invoice fields - NET (without tax)
     customer_invoiced_amount_net = fields.Float(
         string='Invoiced Amount (Net)',
@@ -234,6 +249,9 @@ class ProjectAnalytics(models.Model):
             customer_skonto_taken = 0.0
             vendor_skonto_received = 0.0
 
+            sale_order_amount_net = 0.0
+            sale_order_tax_names = ''
+
             total_hours_booked = 0.0
             labor_costs = 0.0
             other_costs_net = 0.0
@@ -284,6 +302,8 @@ class ProjectAnalytics(models.Model):
                 project.vendor_bills_total_gross = 0.0
                 project.customer_skonto_taken = 0.0
                 project.vendor_skonto_received = 0.0
+                project.sale_order_amount_net = 0.0
+                project.sale_order_tax_names = ''
                 project.total_hours_booked = 0.0
                 project.labor_costs = 0.0
                 project.other_costs_net = 0.0
@@ -308,6 +328,11 @@ class ProjectAnalytics(models.Model):
             skonto_data = self._get_skonto_from_analytic(analytic_account)
             customer_skonto_taken = skonto_data['customer_skonto']
             vendor_skonto_received = skonto_data['vendor_skonto']
+
+            # 3a. Calculate Sales Order data (confirmed orders linked to project)
+            sales_order_data = self._get_sales_order_data(project)
+            sale_order_amount_net = sales_order_data['amount_net']
+            sale_order_tax_names = sales_order_data['tax_names']
 
             # 4. Calculate Labor Costs (Timesheets) - NET amount
             timesheet_data = self._get_timesheet_costs(analytic_account)
@@ -357,6 +382,9 @@ class ProjectAnalytics(models.Model):
 
             project.customer_skonto_taken = customer_skonto_taken
             project.vendor_skonto_received = vendor_skonto_received
+
+            project.sale_order_amount_net = sale_order_amount_net
+            project.sale_order_tax_names = sale_order_tax_names
 
             project.total_hours_booked = total_hours_booked
             project.labor_costs = labor_costs
@@ -813,6 +841,56 @@ class ProjectAnalytics(models.Model):
             'target': 'current',
             'context': dict(self.env.context, form_view_initial_mode='readonly'),
         }
+
+    def _get_sales_order_data(self, project):
+        """
+        Get sales order data for the project: total NET amount and tax codes.
+
+        Only includes confirmed sales orders (state in ['sale', 'done']).
+        Sales orders are linked via project_id field (standard Odoo field).
+
+        Args:
+            project: project.project record
+
+        Returns:
+            dict: {
+                'amount_net': float,  # Total untaxed amount (price_subtotal)
+                'tax_names': str,     # Comma-separated tax names
+            }
+        """
+        result = {
+            'amount_net': 0.0,
+            'tax_names': '',
+        }
+
+        # Search for confirmed sales orders linked to this project
+        # state='sale' means confirmed, 'done' means fully delivered
+        sales_orders = self.env['sale.order'].search([
+            ('project_id', '=', project.id),
+            ('state', 'in', ['sale', 'done'])
+        ])
+
+        if not sales_orders:
+            return result
+
+        # Collect tax names (use set to avoid duplicates)
+        tax_names_set = set()
+
+        # Calculate total NET amount
+        for order in sales_orders:
+            result['amount_net'] += order.amount_untaxed  # NET amount (without taxes)
+
+            # Collect tax names from order lines
+            for line in order.order_line:
+                for tax in line.tax_id:
+                    if tax.name:
+                        tax_names_set.add(tax.name)
+
+        # Convert set to comma-separated string
+        if tax_names_set:
+            result['tax_names'] = ', '.join(sorted(tax_names_set))
+
+        return result
 
     def action_refresh_financial_data(self):
         """

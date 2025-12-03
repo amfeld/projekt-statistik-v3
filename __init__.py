@@ -23,6 +23,10 @@ def uninstall_hook(env):
         'has_analytic_account',
         'data_availability_status',
 
+        # Sales Order fields
+        'sale_order_amount_net',
+        'sale_order_tax_names',
+
         # Customer Invoice NET fields
         'customer_invoiced_amount_net',
         'customer_paid_amount_net',

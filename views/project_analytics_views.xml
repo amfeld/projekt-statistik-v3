@@ -23,11 +23,14 @@
                 <field name="display_name" width="250px" string="Project"/>
                 <field name="head_of_project" width="150px" string="Project Manager"/>
 
-                <!-- Data Availability Status -->
-                <field name="data_availability_status" widget="badge"
-                       decoration-success="data_availability_status == 'available'"
-                       decoration-danger="data_availability_status == 'no_analytic_account'"
-                       optional="show" width="120px" string="Status"/>
+                <!-- Analytic Account Status -->
+                <field name="has_analytic_account" widget="boolean" optional="show" width="100px" string="Has Analytic Account"/>
+                <field name="analytic_account_id" optional="show" width="180px" string="Analytic Account"/>
+
+                <!-- Sales Order Fields (confirmed orders) -->
+                <field name="sale_order_amount_net" sum="Total Sales Orders (NET)" optional="show"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="150px" string="Sales Orders (NET)"/>
+                <field name="sale_order_tax_names" optional="hide" width="120px" string="SO Tax Codes"/>
 
                 <!-- Customer Invoice Fields - NET (primary) -->
                 <field name="customer_invoiced_amount_net" sum="Total Invoiced (Net)" optional="show"
@@ -240,14 +243,18 @@
                         <group string="Project Info">
                             <field name="head_of_project"/>
                             <field name="stage_id"/>
-                            <field name="data_availability_status" widget="badge"
-                                   decoration-success="data_availability_status == 'available'"
-                                   decoration-danger="data_availability_status == 'no_analytic_account'"/>
+                            <field name="analytic_account_id" string="Analytic Account"/>
                         </group>
                     </group>
 
                     <notebook>
                         <page string="💰 Revenue &amp; Invoicing" name="revenue">
+                            <group>
+                                <group string="Sales Orders (Confirmed)">
+                                    <field name="sale_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
+                                    <field name="sale_order_tax_names" string="Tax Codes"/>
+                                </group>
+                            </group>
                             <group>
                                 <group string="Customer Invoices (NET - Main)">
                                     <field name="customer_invoiced_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
