@@ -214,7 +214,7 @@ class ProjectAnalytics(models.Model):
         help="Total project losses as a positive number, NET basis (Verluste Netto). This shows the absolute value of negative profit/loss. If profit/loss is positive, this field is 0. Useful for tracking and reporting total losses."
     )
 
-    @api.depends()
+    @api.depends('account_id')
     def _compute_financial_data(self):
         """
         Compute all financial data for the project based on analytic account lines.
@@ -226,13 +226,18 @@ class ProjectAnalytics(models.Model):
         for customer invoices and vendor bills. Profit/Loss is calculated on NET basis for
         accurate accounting (comparing apples to apples).
 
-        Note: We use @api.depends() (empty) to avoid caching issues. The fields will be
-        recomputed when:
-        1. account.move.line records with analytic_distribution change (via hooks in account_move_line.py)
-        2. Manual trigger via the "Refresh Financial Data" wizard
-        3. Explicit call to _compute_financial_data()
+        Dependencies:
+        - account_id: Triggers recompute when project's analytic account changes
 
-        This approach ensures data is always fresh when invoices, bills, or timesheets change.
+        Additional triggers:
+        1. account.move.line records with analytic_distribution change (via hooks in account_move_line.py)
+        2. account.analytic.line records change (via hooks in account_analytic_line.py)
+        3. Manual trigger via the "Refresh Financial Data" wizard
+        4. Explicit call to _compute_financial_data()
+
+        This hybrid approach (depends + triggers) ensures data is always fresh when:
+        - The project's analytic account changes
+        - Invoices, bills, or timesheets are created/modified/deleted
         """
         for project in self:
             # Initialize all fields
@@ -264,20 +269,43 @@ class ProjectAnalytics(models.Model):
             analytic_account = None
 
             # Get the standard project analytic plan reference
+            # In Odoo 18, analytic_account_id was removed from projects
+            # Projects now use account_id for their primary analytic account
             try:
                 project_plan = self.env.ref('analytic.analytic_plan_projects', raise_if_not_found=False)
-            except Exception:
+            except Exception as e:
+                _logger.warning(f"Could not load external ID 'analytic.analytic_plan_projects': {e}")
                 project_plan = None
 
-            if hasattr(project, 'analytic_account_id') and project.analytic_account_id:
-                # Verify this is the project plan
-                if project_plan and hasattr(project.analytic_account_id, 'plan_id') and project.analytic_account_id.plan_id == project_plan:
-                    analytic_account = project.analytic_account_id
+            # FALLBACK: If external ID not found, search for plan by name
+            if not project_plan:
+                try:
+                    project_plan = self.env['account.analytic.plan'].search([
+                        ('name', 'ilike', 'project')
+                    ], limit=1)
+                    if project_plan:
+                        _logger.info(f"Using analytic plan '{project_plan.name}' (ID: {project_plan.id}) as projects plan")
+                except Exception as e:
+                    _logger.error(f"Could not find projects analytic plan: {e}")
 
-            # Fallback to account_id if analytic_account_id not found
-            if not analytic_account and hasattr(project, 'account_id') and project.account_id:
-                if project_plan and hasattr(project.account_id, 'plan_id') and project.account_id.plan_id == project_plan:
+            # In Odoo 18, use account_id (analytic_account_id was removed)
+            if hasattr(project, 'account_id') and project.account_id:
+                # Verify this is the project plan (if we have one)
+                if project_plan:
+                    if hasattr(project.account_id, 'plan_id') and project.account_id.plan_id == project_plan:
+                        analytic_account = project.account_id
+                    else:
+                        _logger.debug(
+                            f"Project '{project.name}' has analytic account '{project.account_id.name}' "
+                            f"but it belongs to plan '{project.account_id.plan_id.name if project.account_id.plan_id else 'None'}', "
+                            f"not the projects plan '{project_plan.name}'"
+                        )
+                else:
+                    # No project plan found, use any analytic account
                     analytic_account = project.account_id
+                    _logger.warning(
+                        f"No projects analytic plan found, using account '{analytic_account.name}' without plan verification"
+                    )
 
             if not analytic_account:
                 _logger.warning(
@@ -749,10 +777,9 @@ class ProjectAnalytics(models.Model):
         self.ensure_one()
 
         # Get the analytic account
+        # In Odoo 18, analytic_account_id was removed from projects, use account_id
         analytic_account = None
-        if hasattr(self, 'analytic_account_id') and self.analytic_account_id:
-            analytic_account = self.analytic_account_id
-        elif hasattr(self, 'account_id') and self.account_id:
+        if hasattr(self, 'account_id') and self.account_id:
             analytic_account = self.account_id
 
         if not analytic_account:
