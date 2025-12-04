@@ -110,9 +110,8 @@ class AccountMoveLine(models.Model):
                 return
 
             # Find all projects linked to these analytic accounts in one query
+            # In Odoo 18, analytic_account_id was removed from projects, only use account_id
             projects = self.env['project.project'].search([
-                '|',
-                ('analytic_account_id', 'in', project_analytic_accounts.ids),
                 ('account_id', 'in', project_analytic_accounts.ids)
             ])
 

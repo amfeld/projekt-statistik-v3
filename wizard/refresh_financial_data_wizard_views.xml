@@ -8,7 +8,11 @@
             <form string="Refresh Financial Data">
                 <group>
                     <group>
-                        <field name="general_hourly_rate" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                        <label for="general_hourly_rate" string="General Hourly Rate (EUR)"/>
+                        <div class="o_row">
+                            <field name="general_hourly_rate" class="oe_inline"/>
+                            <span class="oe_inline">EUR</span>
+                        </div>
                     </group>
                 </group>
                 <div class="alert alert-info" role="alert">
