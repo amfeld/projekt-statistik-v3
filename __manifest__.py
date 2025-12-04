@@ -16,7 +16,7 @@
     'depends': [
         'project',
         'account',
-        'account_accountant',  # Odoo 18 Enterprise accounting features
+        'accountant',  # Odoo 18 Enterprise accounting features
         'analytic',
         'hr_timesheet',
         'timesheet_grid',  # Odoo 18 Enterprise timesheet grid
