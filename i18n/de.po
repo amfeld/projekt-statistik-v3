@@ -50,3 +50,13 @@ msgstr "Hat analytisches Konto"
 msgid "Faktor HFC"
 msgstr "Faktor HFC"
 
+#. module: project_statistic
+#: model:ir.ui.view,arch_db:project_statistic.view_project_form_inherit_analytics_button
+msgid "Expected Revenue (NET)"
+msgstr "Erwarteter Umsatz (NETTO)"
+
+#. module: project_statistic
+#: model:ir.ui.view,arch_db:project_statistic.view_project_form_inherit_analytics_button
+msgid "Financial Data"
+msgstr "Finanzdaten"
+

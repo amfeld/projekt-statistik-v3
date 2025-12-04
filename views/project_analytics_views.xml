@@ -457,12 +457,13 @@
         </field>
     </record>
 
-    <!-- Inherit standard project form to add analytics button -->
+    <!-- Inherit standard project form to add analytics button and manual sales order field -->
     <record id="view_project_form_inherit_analytics_button" model="ir.ui.view">
         <field name="name">project.project.form.inherit.analytics.button</field>
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
         <field name="arch" type="xml">
+            <!-- Add Financial Analysis button -->
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_open_analytics_form"
                         type="object"
@@ -471,6 +472,17 @@
                         string="Financial Analysis"
                         help="Show detailed financial analysis with NET/GROSS comparison"
                         groups="project.group_project_user"/>
+            </xpath>
+
+            <!-- Add Manual Sales Order field in Settings tab -->
+            <xpath expr="//page[@name='settings']" position="inside">
+                <group string="Financial Data" name="financial_data">
+                    <field name="manual_sales_order_amount_net"
+                           widget="monetary"
+                           options="{'currency_field': 'currency_id'}"
+                           string="Expected Revenue (NET)"/>
+                    <field name="currency_id" invisible="1"/>
+                </group>
             </xpath>
         </field>
     </record>
