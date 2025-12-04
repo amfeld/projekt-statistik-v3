@@ -212,6 +212,7 @@
                         </ol>
                     </div>
                     <field name="data_availability_status" invisible="1"/>
+                    <field name="has_analytic_account" invisible="1"/>
 
                     <!-- Key Metrics Overview -->
                     <group string="📊 Financial Overview" col="4">
