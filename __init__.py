@@ -1,4 +1,5 @@
 from . import models
+from . import wizard
 
 
 def uninstall_hook(env):
@@ -15,9 +16,16 @@ def uninstall_hook(env):
 
     # 1. Remove computed stored fields from database
     fields_to_remove = [
+        # Currency field
+        'currency_id',
+
         # Status fields
         'has_analytic_account',
         'data_availability_status',
+
+        # Sales Order fields
+        'sale_order_amount_net',
+        'sale_order_tax_names',
 
         # Customer Invoice NET fields
         'customer_invoiced_amount_net',
