@@ -9,8 +9,8 @@ class ProjectAnalytics(models.Model):
     _inherit = 'project.project'
     _description = 'Project Analytics Extension'
 
-    # NOTE: analytic_account_id and account_id are native fields in Odoo v18
-    # We don't redefine them, just use them
+    # NOTE: account_id is a native field in Odoo v18 Enterprise (links to analytic account)
+    # We don't redefine it, just use it
 
     # Currency field for monetary widgets
     currency_id = fields.Many2one(
@@ -272,13 +272,9 @@ class ProjectAnalytics(models.Model):
             except Exception:
                 project_plan = None
 
-            if hasattr(project, 'analytic_account_id') and project.analytic_account_id:
+            # In Odoo v18, the standard field is account_id
+            if project.account_id:
                 # Verify this is the project plan
-                if project_plan and hasattr(project.analytic_account_id, 'plan_id') and project.analytic_account_id.plan_id == project_plan:
-                    analytic_account = project.analytic_account_id
-
-            # Fallback to account_id if analytic_account_id not found
-            if not analytic_account and hasattr(project, 'account_id') and project.account_id:
                 if project_plan and hasattr(project.account_id, 'plan_id') and project.account_id.plan_id == project_plan:
                     analytic_account = project.account_id
 
@@ -751,12 +747,8 @@ class ProjectAnalytics(models.Model):
         """
         self.ensure_one()
 
-        # Get the analytic account
-        analytic_account = None
-        if hasattr(self, 'analytic_account_id') and self.analytic_account_id:
-            analytic_account = self.analytic_account_id
-        elif hasattr(self, 'account_id') and self.account_id:
-            analytic_account = self.account_id
+        # Get the analytic account (standard field in Odoo v18 is account_id)
+        analytic_account = self.account_id if self.account_id else None
 
         if not analytic_account:
             return {

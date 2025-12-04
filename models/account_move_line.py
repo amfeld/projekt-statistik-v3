@@ -111,8 +111,6 @@ class AccountMoveLine(models.Model):
 
             # Find all projects linked to these analytic accounts in one query
             projects = self.env['project.project'].search([
-                '|',
-                ('analytic_account_id', 'in', project_analytic_accounts.ids),
                 ('account_id', 'in', project_analytic_accounts.ids)
             ])
 

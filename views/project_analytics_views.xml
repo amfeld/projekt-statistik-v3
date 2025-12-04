@@ -25,7 +25,7 @@
 
                 <!-- Analytic Account Status -->
                 <field name="has_analytic_account" widget="boolean" optional="show" width="100px" string="Has Analytic Account"/>
-                <field name="analytic_account_id" optional="show" width="180px" string="Analytic Account"/>
+                <field name="account_id" optional="show" width="180px" string="Analytic Account"/>
 
                 <!-- Sales Order Fields (confirmed orders) -->
                 <field name="sale_order_amount_net" sum="Total Sales Orders (NET)" optional="show"
@@ -243,7 +243,7 @@
                         <group string="Project Info">
                             <field name="head_of_project"/>
                             <field name="stage_id"/>
-                            <field name="analytic_account_id" string="Analytic Account"/>
+                            <field name="account_id" string="Analytic Account"/>
                         </group>
                     </group>
 
