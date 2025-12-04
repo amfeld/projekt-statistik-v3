@@ -19,6 +19,15 @@ class ProjectAnalytics(models.Model):
         help="Currency used for all monetary fields in this project. Automatically set from company currency."
     )
 
+    # Computed field to get analytic account (handles different field names across Odoo versions)
+    analytic_account_id = fields.Many2one(
+        'account.analytic.account',
+        string='Analytic Account',
+        compute='_compute_analytic_account_id',
+        store=False,
+        help="The analytic account linked to this project. This field works across different Odoo versions that use either 'analytic_account_id' or 'account_id'."
+    )
+
     client_name = fields.Char(
         string='Name of Client',
         related='partner_id.name',
@@ -395,6 +404,41 @@ class ProjectAnalytics(models.Model):
 
             project.profit_loss_net = profit_loss_net
             project.negative_difference_net = negative_difference_net
+
+    def _compute_analytic_account_id(self):
+        """
+        Compute the analytic account for the project.
+
+        This method handles different Odoo versions:
+        - Some versions use 'analytic_account_id'
+        - Other versions use 'account_id'
+
+        This provides a consistent field name across versions.
+        """
+        for project in self:
+            analytic_account = None
+
+            # Try analytic_account_id first (newer versions)
+            if hasattr(project, 'analytic_account_id') and project.analytic_account_id:
+                # Check if it's from the project plan
+                try:
+                    project_plan = self.env.ref('analytic.analytic_plan_projects', raise_if_not_found=False)
+                    if project_plan and hasattr(project.analytic_account_id, 'plan_id') and project.analytic_account_id.plan_id == project_plan:
+                        analytic_account = project.analytic_account_id
+                except Exception:
+                    pass
+
+            # Fallback to account_id (older versions)
+            if not analytic_account and hasattr(project, 'account_id') and project.account_id:
+                try:
+                    project_plan = self.env.ref('analytic.analytic_plan_projects', raise_if_not_found=False)
+                    if project_plan and hasattr(project.account_id, 'plan_id') and project.account_id.plan_id == project_plan:
+                        analytic_account = project.account_id
+                except Exception:
+                    pass
+
+            # Assign the computed value
+            project.analytic_account_id = analytic_account
 
     def _get_customer_invoices_from_analytic(self, analytic_account):
         """
