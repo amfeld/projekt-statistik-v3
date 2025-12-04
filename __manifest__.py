@@ -16,10 +16,10 @@
     'depends': [
         'project',
         'account',
-        'accountant',
+        'account_accountant',  # Odoo 18 Enterprise accounting features
         'analytic',
         'hr_timesheet',
-        'timesheet_grid',
+        'timesheet_grid',  # Odoo 18 Enterprise timesheet grid
         'sale',
         'sale_project',  # Required for project_id field on sale.order
     ],
@@ -29,9 +29,9 @@
         'security/ir.model.access.csv',
         'data/ir_config_parameter.xml',
         'wizard/refresh_financial_data_wizard_views.xml',
-        'views/project_analytics_views.xml',
         'views/hr_employee_views.xml',
-        'data/menuitem.xml',
+        'views/project_analytics_views.xml',  # Must be loaded before menuitem.xml (defines actions)
+        'data/menuitem.xml',  # Loaded last (references actions from views)
     ],
     'installable': True,
     'application': False,
