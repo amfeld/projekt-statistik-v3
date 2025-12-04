@@ -18,6 +18,12 @@
                 <!-- Sequence for manual drag&drop sorting (handle icon only, not displayed as column) -->
                 <field name="sequence" widget="handle"/>
 
+                <!-- Analytic Account Status -->
+                <field name="has_analytic_account" widget="badge"
+                       decoration-success="has_analytic_account == True"
+                       decoration-danger="has_analytic_account == False"
+                       optional="show" width="110px"/>
+
                 <!-- Basic Information -->
                 <field name="client_name" width="200px" string="Client"/>
                 <field name="display_name" width="250px" string="Project"/>
@@ -215,7 +221,7 @@
                     <field name="has_analytic_account" invisible="1"/>
 
                     <!-- Key Metrics Overview -->
-                    <group string="📊 Financial Overview" col="4">
+                    <group string="📊 Financial Overview" col="3">
                         <group string="Revenue (NET)">
                             <field name="customer_invoiced_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
                             <field name="customer_paid_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -236,10 +242,6 @@
                             <field name="negative_difference_net" widget="monetary" options="{'currency_field': 'currency_id'}"
                                    invisible="profit_loss_net &gt;= 0"/>
                         </group>
-                        <group string="Project Info">
-                            <field name="head_of_project"/>
-                            <field name="stage_id"/>
-                        </group>
                     </group>
 
                     <notebook>
@@ -248,6 +250,12 @@
                                 <group string="Sales Orders (Confirmed)">
                                     <field name="sale_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
                                     <field name="sale_order_tax_names" string="Tax Codes"/>
+                                </group>
+                                <group string="Manual Sales Order (Fallback)">
+                                    <field name="manual_sales_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <div class="text-muted">
+                                        <small>Used when no sales orders are linked to this project</small>
+                                    </div>
                                 </group>
                             </group>
                             <group>
@@ -378,13 +386,23 @@
                                 <group string="Project Information">
                                     <field name="partner_id" string="Customer"/>
                                     <field name="user_id" string="Project Manager"/>
-                                    <field name="stage_id"/>
+                                    <field name="head_of_project" string="Head of Project"/>
+                                    <field name="stage_id" string="Stage"/>
                                     <field name="company_id" groups="base.group_multi_company"/>
                                 </group>
                                 <group string="Dates">
                                     <field name="date_start" string="Start Date"/>
                                     <field name="date" string="End Date"/>
                                     <field name="create_date" string="Created"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Analytic Accounting">
+                                    <field name="account_id" string="Analytic Account" widget="many2one_clickable"/>
+                                    <field name="has_analytic_account" widget="badge"
+                                           decoration-success="has_analytic_account == True"
+                                           decoration-danger="has_analytic_account == False"
+                                           string="Status"/>
                                 </group>
                             </group>
                         </page>

@@ -61,7 +61,12 @@ class ProjectAnalytics(models.Model):
         compute='_compute_financial_data',
         store=True,
         aggregator='sum',
-        help="Total amount (NET) of all confirmed sales orders linked to this project. Only includes orders in 'sale' or 'done' state."
+        help="Total amount (NET) of all confirmed sales orders linked to this project. Only includes orders in 'sale' or 'done' state. If no sales orders are linked, uses manual_sales_order_amount_net as fallback."
+    )
+    manual_sales_order_amount_net = fields.Float(
+        string='Manual Sales Order Amount (NET)',
+        default=0.0,
+        help="Fallback sales order amount for projects without linked sales orders. This value will be used if no sales orders are found."
     )
     sale_order_tax_names = fields.Char(
         string='SO Tax Codes',
@@ -878,12 +883,14 @@ class ProjectAnalytics(models.Model):
         Only includes confirmed sales orders (state in ['sale', 'done']).
         Sales orders are linked via project_id field (standard Odoo field).
 
+        FALLBACK: If no sales orders are found, uses manual_sales_order_amount_net field.
+
         Args:
             project: project.project record
 
         Returns:
             dict: {
-                'amount_net': float,  # Total untaxed amount (price_subtotal)
+                'amount_net': float,  # Total untaxed amount (price_subtotal) or manual fallback
                 'tax_names': str,     # Comma-separated tax names
             }
         """
@@ -900,6 +907,8 @@ class ProjectAnalytics(models.Model):
         ])
 
         if not sales_orders:
+            # FALLBACK: Use manual amount if no sales orders found
+            result['amount_net'] = project.manual_sales_order_amount_net or 0.0
             return result
 
         # Collect tax names (use set to avoid duplicates)
