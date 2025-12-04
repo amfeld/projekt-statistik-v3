@@ -18,16 +18,17 @@
                 <!-- Sequence for manual drag&drop sorting (handle icon only, not displayed as column) -->
                 <field name="sequence" widget="handle"/>
 
-                <!-- Analytic Account Status -->
-                <field name="has_analytic_account" widget="badge"
-                       decoration-success="has_analytic_account == True"
-                       decoration-danger="has_analytic_account == False"
-                       optional="show" width="110px"/>
-
                 <!-- Basic Information -->
                 <field name="client_name" width="200px" string="Client"/>
                 <field name="display_name" width="250px" string="Project"/>
                 <field name="head_of_project" width="150px" string="Project Manager"/>
+
+                <!-- Analytic Account Status -->
+                <field name="analytic_status_display"
+                       decoration-success="analytic_status_display == 'Has Account'"
+                       decoration-danger="analytic_status_display == 'No Account'"
+                       optional="show" width="120px"/>
+                <field name="has_analytic_account" invisible="1"/>
 
                 <!-- Sales Order Fields (confirmed orders) -->
                 <field name="sale_order_amount_net" sum="Total Sales Orders (NET)" optional="show"

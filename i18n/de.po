@@ -46,6 +46,21 @@ msgid "Has Analytic Account"
 msgstr "Hat analytisches Konto"
 
 #. module: project_statistic
+#: model:ir.model.fields,field_description:project_statistic.field_project_project__analytic_status_display
+msgid "Analytic Status"
+msgstr "Analytikstatus"
+
+#. module: project_statistic
+#: code:addons/project_statistic/models/project_analytics.py:0
+msgid "Has Account"
+msgstr "Hat Konto"
+
+#. module: project_statistic
+#: code:addons/project_statistic/models/project_analytics.py:0
+msgid "No Account"
+msgstr "Kein Konto"
+
+#. module: project_statistic
 #: model:ir.model.fields,field_description:project_statistic.field_hr_employee__faktor_hfc
 msgid "Faktor HFC"
 msgstr "Faktor HFC"

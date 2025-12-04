@@ -46,6 +46,12 @@ class ProjectAnalytics(models.Model):
         store=True,
         help="Indicates whether this project has a valid analytic account for financial tracking. If False, no financial data can be calculated."
     )
+    analytic_status_display = fields.Char(
+        string='Analytic Status',
+        compute='_compute_analytic_status_display',
+        store=False,
+        help="Display text for analytic account status: 'Has Account' or 'No Account'"
+    )
     data_availability_status = fields.Selection([
         ('available', 'Data Available'),
         ('no_analytic_account', 'No Analytic Account'),
@@ -218,6 +224,18 @@ class ProjectAnalytics(models.Model):
         aggregator='sum',
         help="Total project losses as a positive number, NET basis (Verluste Netto). This shows the absolute value of negative profit/loss. If profit/loss is positive, this field is 0. Useful for tracking and reporting total losses."
     )
+
+    @api.depends('has_analytic_account')
+    def _compute_analytic_status_display(self):
+        """
+        Compute display text for analytic account status.
+        Returns 'Has Account' or 'No Account' for better UX.
+        """
+        for project in self:
+            if project.has_analytic_account:
+                project.analytic_status_display = 'Has Account'
+            else:
+                project.analytic_status_display = 'No Account'
 
     @api.depends('account_id')
     def _compute_financial_data(self):
