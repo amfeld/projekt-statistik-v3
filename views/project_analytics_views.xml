@@ -40,6 +40,15 @@
                 <!-- Customer Invoice Fields - NET (primary) -->
                 <field name="customer_invoiced_amount_net" sum="Total Invoiced (Net)" optional="show"
                        widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1" width="140px" string="Invoiced (NET)"/>
+
+                <!-- Customer Invoice Breakdown - NET (optional) -->
+                <field name="customer_invoices_net" sum="Total Outgoing Invoices" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="140px" string="Out. Invoices"/>
+                <field name="customer_credit_notes_net" sum="Total Credit Notes" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" decoration-danger="customer_credit_notes_net != 0" width="140px" string="Credit Notes"/>
+                <field name="customer_invoices_total_net" sum="Total Invoiced" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="140px" string="Invoices Total"/>
+
                 <field name="customer_paid_amount_net" sum="Total Paid (Net)" optional="show"
                        widget="monetary" options="{'currency_field': 'currency_id'}" width="140px" string="Paid (NET)"/>
                 <field name="customer_outstanding_amount_net" sum="Total Outstanding (Net)" optional="show"
@@ -61,6 +70,14 @@
                 <!-- Vendor Bills - NET (primary) -->
                 <field name="vendor_bills_total_net" sum="Total Vendor Bills (Net)" optional="show"
                        widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1" width="140px" string="Vendor Bills (NET)"/>
+
+                <!-- Vendor Bills Breakdown - NET (optional) -->
+                <field name="vendor_bills_net" sum="Total Incoming Bills" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="140px" string="Inc. Bills"/>
+                <field name="vendor_credit_notes_net" sum="Total Vendor Credit Notes" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" decoration-success="vendor_credit_notes_net != 0" width="140px" string="Vendor Cr. Notes"/>
+                <field name="vendor_bills_sum_net" sum="Total Vendor Bills Sum" optional="hide"
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="140px" string="Bills Sum"/>
 
                 <!-- Vendor Bills - GROSS (dunkelgrau) -->
                 <field name="vendor_bills_total_gross" sum="Total Vendor Bills (Gross)" optional="hide"
@@ -110,6 +127,9 @@
             <pivot string="Project Statistics Pivot">
                 <!-- Customer Invoice Measures - NET (primary) -->
                 <field name="customer_invoiced_amount_net" type="measure"/>
+                <field name="customer_invoices_net" type="measure" string="Outgoing Invoices"/>
+                <field name="customer_credit_notes_net" type="measure" string="Customer Credit Notes"/>
+                <field name="customer_invoices_total_net" type="measure" string="Invoices Total"/>
                 <field name="customer_paid_amount_net" type="measure"/>
                 <field name="customer_outstanding_amount_net" type="measure"/>
 
@@ -122,6 +142,9 @@
 
                 <!-- Vendor Bill Measures - NET (primary) -->
                 <field name="vendor_bills_total_net" type="measure"/>
+                <field name="vendor_bills_net" type="measure" string="Incoming Bills"/>
+                <field name="vendor_credit_notes_net" type="measure" string="Vendor Credit Notes"/>
+                <field name="vendor_bills_sum_net" type="measure" string="Vendor Bills Sum"/>
 
                 <!-- Vendor Bill Measures - GROSS -->
                 <field name="vendor_bills_total_gross" type="measure"/>
@@ -255,67 +278,109 @@
                     </group>
 
                     <notebook>
-                        <page string="💰 Revenue &amp; Invoicing" name="revenue">
-                            <group>
-                                <group string="Sales Orders (Confirmed)">
+                        <page string="📤 Outgoing Invoices (with Payments)" name="outgoing_invoices">
+                            <!-- Sales Orders Reference -->
+                            <group string="📋 Sales Orders (Reference)">
+                                <group>
                                     <field name="has_sales_orders" invisible="1"/>
                                     <field name="sale_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
                                     <field name="sale_order_tax_names" string="Tax Codes"/>
                                     <div class="alert alert-warning" role="alert" invisible="has_sales_orders">
-                                        <strong>ℹ️ Fallback Value in Use</strong><br/>
-                                        No linked sales offer found. The value shown above is from the manual fallback field.
+                                        <strong>ℹ️ Fallback Value</strong><br/>
+                                        No linked sales orders found. Showing manual fallback value.
                                     </div>
                                 </group>
-                                <group string="Manual Sales Order (Fallback)">
+                                <group>
                                     <field name="manual_sales_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <div class="text-muted">
-                                        <small>Used when no sales orders are linked to this project</small>
-                                    </div>
+                                    <p class="text-muted"><small>Used when no sales orders are linked</small></p>
                                 </group>
                             </group>
+
+                            <separator string="📊 Outgoing Invoices Breakdown (NET)"/>
+
+                            <!-- Invoices Breakdown -->
                             <group>
-                                <group string="Customer Invoices (NET - Main)">
-                                    <field name="customer_invoiced_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
-                                    <field name="customer_paid_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                    <field name="customer_outstanding_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           decoration-danger="customer_outstanding_amount_net &gt; 0"/>
+                                <group string="Invoice Amounts">
+                                    <label for="customer_invoices_net" string="Outgoing Invoices"/>
+                                    <div class="o_row">
+                                        <field name="customer_invoices_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               decoration-bf="1" class="oe_inline"/>
+                                        <span class="text-muted oe_inline">(positive)</span>
+                                    </div>
+                                    <label for="customer_credit_notes_net" string="Credit Notes"/>
+                                    <div class="o_row">
+                                        <field name="customer_credit_notes_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               decoration-danger="customer_credit_notes_net != 0" class="oe_inline"/>
+                                        <span class="text-muted oe_inline">(negative)</span>
+                                    </div>
+                                    <separator/>
+                                    <field name="customer_invoices_total_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-bf="1" string="Total Invoiced (NET)"/>
                                     <field name="customer_skonto_taken" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           string="Cash Discounts Granted"/>
+                                           string="Cash Discounts Granted" decoration-warning="customer_skonto_taken != 0"/>
                                 </group>
-                                <group string="Customer Invoices (GROSS - with VAT)">
+
+                                <!-- Payment Status -->
+                                <group string="Payment Status">
+                                    <field name="customer_paid_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-success="customer_paid_amount_net &gt; 0"/>
+                                    <field name="customer_outstanding_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-danger="customer_outstanding_amount_net &gt; 0" decoration-bf="1"/>
+                                    <separator string="GROSS Reference (with VAT)"/>
                                     <field name="customer_invoiced_amount_gross" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           class="text-muted"/>
+                                           class="text-muted" string="Total Invoiced (GROSS)"/>
                                     <field name="customer_paid_amount_gross" widget="monetary" options="{'currency_field': 'currency_id'}"
                                            class="text-muted"/>
                                     <field name="customer_outstanding_amount_gross" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           class="text-muted"
-                                           decoration-danger="customer_outstanding_amount_gross &gt; 0"/>
-                                </group>
-                            </group>
-                            <div class="alert alert-info mt-3" role="alert">
-                                <strong>💡 Info:</strong> NET amounts (bold) are used for profit calculations.
-                                GROSS amounts show total incl. VAT for cash flow analysis.
-                            </div>
-                        </page>
-
-                        <page string="💸 External Costs" name="external_costs">
-                            <group>
-                                <group string="Vendor Bills (NET - Main)">
-                                    <field name="vendor_bills_total_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
-                                    <field name="adjusted_vendor_bill_amount" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"
-                                           string="Adjusted Vendor Bills (with surcharge)"/>
-                                    <field name="vendor_skonto_received" widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           string="Cash Discounts Received"/>
-                                </group>
-                                <group string="Vendor Bills (GROSS - with VAT)">
-                                    <field name="vendor_bills_total_gross" widget="monetary" options="{'currency_field': 'currency_id'}"
                                            class="text-muted"/>
                                 </group>
                             </group>
+
                             <div class="alert alert-info mt-3" role="alert">
-                                <strong>💡 Info:</strong> Vendor bills are external costs from suppliers.
-                                The adjusted vendor bills include a surcharge factor (default 1.30 = 30% markup).
-                                Cash discounts reduce the effective costs.
+                                <strong>💡 Info:</strong> Credit notes are shown as negative amounts and reduce the total.
+                                NET amounts are used for profit calculations. GROSS amounts show total including VAT for cash flow reference.
+                            </div>
+                        </page>
+
+                        <page string="📥 Incoming Invoices" name="incoming_invoices">
+                            <separator string="📊 Incoming Invoices Breakdown (NET)"/>
+
+                            <!-- Vendor Bills Breakdown -->
+                            <group>
+                                <group string="Invoice Amounts">
+                                    <label for="vendor_bills_net" string="Incoming Bills"/>
+                                    <div class="o_row">
+                                        <field name="vendor_bills_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               decoration-bf="1" class="oe_inline"/>
+                                        <span class="text-muted oe_inline">(positive)</span>
+                                    </div>
+                                    <label for="vendor_credit_notes_net" string="Credit Notes"/>
+                                    <div class="o_row">
+                                        <field name="vendor_credit_notes_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                               decoration-success="vendor_credit_notes_net != 0" class="oe_inline"/>
+                                        <span class="text-muted oe_inline">(negative)</span>
+                                    </div>
+                                    <separator/>
+                                    <field name="vendor_bills_sum_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-bf="1" string="Total Vendor Bills (NET)"/>
+                                    <field name="vendor_skonto_received" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           string="Cash Discounts Received" decoration-success="vendor_skonto_received != 0"/>
+                                </group>
+
+                                <!-- Adjusted Costs -->
+                                <group string="Adjusted Costs">
+                                    <field name="adjusted_vendor_bill_amount" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-bf="1" string="Adjusted Bills (with surcharge)"/>
+                                    <p class="text-muted"><small>Surcharge factor: default 1.30 (30% markup)</small></p>
+                                    <separator string="GROSS Reference (with VAT)"/>
+                                    <field name="vendor_bills_total_gross" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           class="text-muted" string="Total Bills (GROSS)"/>
+                                </group>
+                            </group>
+
+                            <div class="alert alert-info mt-3" role="alert">
+                                <strong>💡 Info:</strong> Credit notes received from vendors are shown as negative amounts and reduce costs.
+                                NET amounts are used for profit calculations. The adjusted vendor bills include a configurable surcharge factor.
                             </div>
                         </page>
 

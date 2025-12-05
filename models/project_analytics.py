@@ -95,6 +95,30 @@ class ProjectAnalytics(models.Model):
         aggregator='sum',
         help="Net amount invoiced to customers (without VAT/tax). This is the base amount before taxes are added. Uses price_subtotal from invoice lines."
     )
+
+    # Detailed breakdown of customer invoices
+    customer_invoices_net = fields.Float(
+        string='Customer Invoices (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Outgoing invoices to customers (NET, positive amount). Only includes out_invoice type."
+    )
+    customer_credit_notes_net = fields.Float(
+        string='Customer Credit Notes (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Credit notes issued to customers (NET, stored as negative amount). Only includes out_refund type."
+    )
+    customer_invoices_total_net = fields.Float(
+        string='Customer Invoices Total (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Net total of customer invoices minus credit notes. Formula: customer_invoices_net + customer_credit_notes_net (credit notes are negative)"
+    )
+
     customer_paid_amount_net = fields.Float(
         string='Paid Amount (Net)',
         compute='_compute_financial_data',
@@ -140,6 +164,29 @@ class ProjectAnalytics(models.Model):
         store=True,
         aggregator='sum',
         help="Net amount of vendor bills (without VAT/tax). This is the base cost before taxes. Uses price_subtotal from bill lines."
+    )
+
+    # Detailed breakdown of vendor bills
+    vendor_bills_net = fields.Float(
+        string='Vendor Bills (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Incoming bills from vendors (NET, positive amount). Only includes in_invoice type."
+    )
+    vendor_credit_notes_net = fields.Float(
+        string='Vendor Credit Notes (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Credit notes received from vendors (NET, stored as negative amount). Only includes in_refund type."
+    )
+    vendor_bills_sum_net = fields.Float(
+        string='Vendor Bills Sum (NET)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Net total of vendor bills minus credit notes. Formula: vendor_bills_net + vendor_credit_notes_net (credit notes are negative)"
     )
 
     # Vendor Bill fields - GROSS (with tax)
@@ -297,9 +344,15 @@ class ProjectAnalytics(models.Model):
             customer_invoiced_amount_gross = 0.0
             customer_paid_amount_gross = 0.0
             customer_outstanding_amount_gross = 0.0
+            customer_invoices_net = 0.0
+            customer_credit_notes_net = 0.0
+            customer_invoices_total_net = 0.0
 
             vendor_bills_total_net = 0.0
             vendor_bills_total_gross = 0.0
+            vendor_bills_net = 0.0
+            vendor_credit_notes_net = 0.0
+            vendor_bills_sum_net = 0.0
             adjusted_vendor_bill_amount = 0.0
 
             customer_skonto_taken = 0.0
@@ -379,8 +432,14 @@ class ProjectAnalytics(models.Model):
                 project.customer_invoiced_amount_gross = 0.0
                 project.customer_paid_amount_gross = 0.0
                 project.customer_outstanding_amount_gross = 0.0
+                project.customer_invoices_net = 0.0
+                project.customer_credit_notes_net = 0.0
+                project.customer_invoices_total_net = 0.0
                 project.vendor_bills_total_net = 0.0
                 project.vendor_bills_total_gross = 0.0
+                project.vendor_bills_net = 0.0
+                project.vendor_credit_notes_net = 0.0
+                project.vendor_bills_sum_net = 0.0
                 project.adjusted_vendor_bill_amount = 0.0
                 project.customer_skonto_taken = 0.0
                 project.vendor_skonto_received = 0.0
@@ -402,11 +461,17 @@ class ProjectAnalytics(models.Model):
             customer_paid_amount_net = customer_data['paid_net']
             customer_invoiced_amount_gross = customer_data['invoiced_gross']
             customer_paid_amount_gross = customer_data['paid_gross']
+            customer_invoices_net = customer_data['invoices_net']
+            customer_credit_notes_net = customer_data['credit_notes_net']
+            customer_invoices_total_net = customer_data['invoices_total_net']
 
             # 2. Calculate Vendor Bills (Direct Costs) - Both NET and GROSS
             vendor_data = self._get_vendor_bills_from_analytic(analytic_account)
             vendor_bills_total_net = vendor_data['total_net']
             vendor_bills_total_gross = vendor_data['total_gross']
+            vendor_bills_net = vendor_data['bills_net']
+            vendor_credit_notes_net = vendor_data['credit_notes_net']
+            vendor_bills_sum_net = vendor_data['bills_sum_net']
 
             # 3. Calculate Skonto (Cash Discounts) from analytic lines
             skonto_data = self._get_skonto_from_analytic(analytic_account)
@@ -478,9 +543,15 @@ class ProjectAnalytics(models.Model):
             project.customer_invoiced_amount_gross = customer_invoiced_amount_gross
             project.customer_paid_amount_gross = customer_paid_amount_gross
             project.customer_outstanding_amount_gross = customer_outstanding_amount_gross
+            project.customer_invoices_net = customer_invoices_net
+            project.customer_credit_notes_net = customer_credit_notes_net
+            project.customer_invoices_total_net = customer_invoices_total_net
 
             project.vendor_bills_total_net = vendor_bills_total_net
             project.vendor_bills_total_gross = vendor_bills_total_gross
+            project.vendor_bills_net = vendor_bills_net
+            project.vendor_credit_notes_net = vendor_credit_notes_net
+            project.vendor_bills_sum_net = vendor_bills_sum_net
             project.adjusted_vendor_bill_amount = adjusted_vendor_bill_amount
 
             project.customer_skonto_taken = customer_skonto_taken
@@ -522,14 +593,20 @@ class ProjectAnalytics(models.Model):
                 'invoiced_net': float,
                 'paid_net': float,
                 'invoiced_gross': float,
-                'paid_gross': float
+                'paid_gross': float,
+                'invoices_net': float,  # Only out_invoice (positive)
+                'credit_notes_net': float,  # Only out_refund (negative)
+                'invoices_total_net': float,  # Sum of above
             }
         """
         result = {
             'invoiced_net': 0.0,
             'paid_net': 0.0,
             'invoiced_gross': 0.0,
-            'paid_gross': 0.0
+            'paid_gross': 0.0,
+            'invoices_net': 0.0,
+            'credit_notes_net': 0.0,
+            'invoices_total_net': 0.0,
         }
 
         # DEBUG: Log what we're searching for
@@ -600,10 +677,16 @@ class ProjectAnalytics(models.Model):
                     # GROSS: price_total (with taxes)
                     line_amount_gross = line.price_total * percentage
 
-                    # Credit notes (out_refund) reduce revenue, so subtract them
-                    if invoice.move_type == 'out_refund':
-                        line_amount_net = -abs(line_amount_net)  # Ensure negative
-                        line_amount_gross = -abs(line_amount_gross)  # Ensure negative
+                    # Separate tracking for invoices vs credit notes
+                    if invoice.move_type == 'out_invoice':
+                        # Regular invoices: positive amounts
+                        result['invoices_net'] += line_amount_net
+                    elif invoice.move_type == 'out_refund':
+                        # Credit notes: store as negative amounts
+                        result['credit_notes_net'] += -abs(line_amount_net)
+                        # For total calculation, make credit notes negative
+                        line_amount_net = -abs(line_amount_net)
+                        line_amount_gross = -abs(line_amount_gross)
 
                     result['invoiced_net'] += line_amount_net
                     result['invoiced_gross'] += line_amount_gross
@@ -626,6 +709,9 @@ class ProjectAnalytics(models.Model):
         _logger.info(f"Matched {matched_lines} invoice lines for analytic account {analytic_account.id}")
         _logger.info(f"Result: NET invoiced={result['invoiced_net']:.2f}, GROSS invoiced={result['invoiced_gross']:.2f}")
 
+        # Calculate total (invoices + credit_notes, where credit_notes are negative)
+        result['invoices_total_net'] = result['invoices_net'] + result['credit_notes_net']
+
         return result
 
     def _get_vendor_bills_from_analytic(self, analytic_account):
@@ -647,12 +733,18 @@ class ProjectAnalytics(models.Model):
         Returns:
             dict: {
                 'total_net': float,
-                'total_gross': float
+                'total_gross': float,
+                'bills_net': float,  # Only in_invoice (positive)
+                'credit_notes_net': float,  # Only in_refund (negative)
+                'bills_sum_net': float,  # Sum of above
             }
         """
         result = {
             'total_net': 0.0,
-            'total_gross': 0.0
+            'total_gross': 0.0,
+            'bills_net': 0.0,
+            'credit_notes_net': 0.0,
+            'bills_sum_net': 0.0,
         }
 
         # DEBUG: Log what we're searching for
@@ -720,10 +812,16 @@ class ProjectAnalytics(models.Model):
                     # GROSS: price_total (with taxes)
                     line_amount_gross = line.price_total * percentage
 
-                    # Vendor refunds (in_refund) reduce costs, so subtract them
-                    if bill.move_type == 'in_refund':
-                        line_amount_net = -abs(line_amount_net)  # Ensure negative
-                        line_amount_gross = -abs(line_amount_gross)  # Ensure negative
+                    # Separate tracking for bills vs refunds
+                    if bill.move_type == 'in_invoice':
+                        # Regular vendor bills: positive amounts
+                        result['bills_net'] += line_amount_net
+                    elif bill.move_type == 'in_refund':
+                        # Vendor refunds: store as negative amounts
+                        result['credit_notes_net'] += -abs(line_amount_net)
+                        # For total calculation, make refunds negative
+                        line_amount_net = -abs(line_amount_net)
+                        line_amount_gross = -abs(line_amount_gross)
 
                     result['total_net'] += line_amount_net
                     result['total_gross'] += line_amount_gross
@@ -736,6 +834,9 @@ class ProjectAnalytics(models.Model):
 
         _logger.info(f"Matched {matched_lines} bill lines for analytic account {analytic_account.id}")
         _logger.info(f"Result: NET bills={result['total_net']:.2f}, GROSS bills={result['total_gross']:.2f}")
+
+        # Calculate sum (bills + credit_notes, where credit_notes are negative)
+        result['bills_sum_net'] = result['bills_net'] + result['credit_notes_net']
 
         return result
 
@@ -819,12 +920,17 @@ class ProjectAnalytics(models.Model):
         """
         Get other costs from analytic lines that are:
         - NOT timesheets (is_timesheet=False)
-        - NOT from vendor bills (no move_line_id with in_invoice/in_refund)
+        - NOT from invoices/bills (no move_line_id with invoice/bill types)
+        - NOT from reversed entries (to avoid duplicates from cancellations)
+        - NOT from Skonto/cash discount accounts (counted separately)
         - Negative amounts (costs are negative in Odoo)
 
         Returns NET amounts.
         """
         other_costs = 0.0
+
+        # Skonto account codes (to exclude from other costs as they're counted separately)
+        skonto_account_codes = ['7300', '7301', '7302', '7303', '2130', '4730', '4731', '4732', '4733', '2670']
 
         # Find all cost lines (negative amounts, not timesheets)
         cost_lines = self.env['account.analytic.line'].search([
@@ -834,17 +940,25 @@ class ProjectAnalytics(models.Model):
         ])
 
         for line in cost_lines:
-            # Check if this line is NOT from a vendor bill
-            is_from_vendor_bill = False
+            # Skip lines from invoices or bills (they're counted separately)
             if line.move_line_id:
                 move = line.move_line_id.move_id
-                if move and move.move_type in ['in_invoice', 'in_refund']:
-                    is_from_vendor_bill = True
+                account = line.move_line_id.account_id
 
-            # Only count if it's not from a vendor bill
-            # (vendor bills are counted separately in vendor_bills_total)
-            if not is_from_vendor_bill:
-                other_costs += abs(line.amount)
+                # Skip if from any invoice or bill type
+                if move and move.move_type in ['in_invoice', 'in_refund', 'out_invoice', 'out_refund']:
+                    continue
+
+                # Skip reversed entries to avoid counting cancellations twice
+                if move and move.reversed_entry_id:
+                    continue
+
+                # Skip Skonto/cash discount accounts (counted separately)
+                if account and account.code in skonto_account_codes:
+                    continue
+
+            # Count this as other cost
+            other_costs += abs(line.amount)
 
         return other_costs
 
