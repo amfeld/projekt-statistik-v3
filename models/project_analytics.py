@@ -46,6 +46,12 @@ class ProjectAnalytics(models.Model):
         store=True,
         help="Indicates whether this project has a valid analytic account for financial tracking. If False, no financial data can be calculated."
     )
+    analytic_status_display = fields.Char(
+        string='Analytic Status',
+        compute='_compute_analytic_status_display',
+        store=False,
+        help="Display text for analytic account status: 'Has Account' or 'No Account'"
+    )
     data_availability_status = fields.Selection([
         ('available', 'Data Available'),
         ('no_analytic_account', 'No Analytic Account'),
@@ -61,7 +67,12 @@ class ProjectAnalytics(models.Model):
         compute='_compute_financial_data',
         store=True,
         aggregator='sum',
-        help="Total amount (NET) of all confirmed sales orders linked to this project. Only includes orders in 'sale' or 'done' state."
+        help="Total amount (NET) of all confirmed sales orders linked to this project. Only includes orders in 'sale' or 'done' state. If no sales orders are linked, uses manual_sales_order_amount_net as fallback."
+    )
+    manual_sales_order_amount_net = fields.Float(
+        string='Manual Sales Order Amount (NET)',
+        default=0.0,
+        help="Fallback sales order amount for projects without linked sales orders. This value will be used if no sales orders are found."
     )
     sale_order_tax_names = fields.Char(
         string='SO Tax Codes',
@@ -213,6 +224,18 @@ class ProjectAnalytics(models.Model):
         aggregator='sum',
         help="Total project losses as a positive number, NET basis (Verluste Netto). This shows the absolute value of negative profit/loss. If profit/loss is positive, this field is 0. Useful for tracking and reporting total losses."
     )
+
+    @api.depends('has_analytic_account')
+    def _compute_analytic_status_display(self):
+        """
+        Compute display text for analytic account status.
+        Returns 'Has Account' or 'No Account' for better UX.
+        """
+        for project in self:
+            if project.has_analytic_account:
+                project.analytic_status_display = 'Has Account'
+            else:
+                project.analytic_status_display = 'No Account'
 
     @api.depends('account_id')
     def _compute_financial_data(self):
@@ -878,12 +901,14 @@ class ProjectAnalytics(models.Model):
         Only includes confirmed sales orders (state in ['sale', 'done']).
         Sales orders are linked via project_id field (standard Odoo field).
 
+        FALLBACK: If no sales orders are found, uses manual_sales_order_amount_net field.
+
         Args:
             project: project.project record
 
         Returns:
             dict: {
-                'amount_net': float,  # Total untaxed amount (price_subtotal)
+                'amount_net': float,  # Total untaxed amount (price_subtotal) or manual fallback
                 'tax_names': str,     # Comma-separated tax names
             }
         """
@@ -900,6 +925,8 @@ class ProjectAnalytics(models.Model):
         ])
 
         if not sales_orders:
+            # FALLBACK: Use manual amount if no sales orders found
+            result['amount_net'] = project.manual_sales_order_amount_net or 0.0
             return result
 
         # Collect tax names (use set to avoid duplicates)

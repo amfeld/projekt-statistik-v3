@@ -4,98 +4,37 @@ from . import wizard
 
 def uninstall_hook(env):
     """
-    Clean up stored computed fields and view inheritances when module is uninstalled.
+    Uninstall hook for project_statistic module.
 
-    This ensures:
-    1. Orphaned database columns are removed
-    2. View inheritances are properly cleaned up
-    3. Standard project form continues to work after uninstallation
+    In Odoo 18, the ORM automatically cleans up fields when a module is uninstalled.
+    We don't need to manually drop columns - this causes timing issues where Odoo
+    tries to access fields after they've been dropped.
+
+    This hook is kept minimal to just log the uninstallation.
+    Odoo will automatically:
+    - Remove ir.model.fields records for this module
+    - Drop database columns for removed fields
+    - Clean up view inheritances
+    - Remove menu items and actions
+
+    DO NOT manually drop columns or delete field records here - it breaks Odoo's cleanup!
     """
     import logging
     _logger = logging.getLogger(__name__)
 
-    # 1. Remove computed stored fields from database
-    fields_to_remove = [
-        # Currency field
-        'currency_id',
+    _logger.info("=" * 80)
+    _logger.info("Project Statistic module uninstall hook started")
+    _logger.info("=" * 80)
+    _logger.info("Odoo 18 will automatically clean up:")
+    _logger.info("  - All custom fields on project.project")
+    _logger.info("  - All view inheritances")
+    _logger.info("  - All menu items and actions")
+    _logger.info("  - Database columns for removed fields")
+    _logger.info("")
+    _logger.info("No manual cleanup needed - Odoo handles everything!")
+    _logger.info("=" * 80)
+    _logger.info("Project Statistic module uninstall hook completed")
+    _logger.info("=" * 80)
 
-        # Status fields
-        'has_analytic_account',
-        'data_availability_status',
-
-        # Sales Order fields
-        'sale_order_amount_net',
-        'sale_order_tax_names',
-
-        # Customer Invoice NET fields
-        'customer_invoiced_amount_net',
-        'customer_paid_amount_net',
-        'customer_outstanding_amount_net',
-
-        # Customer Invoice GROSS fields
-        'customer_invoiced_amount_gross',
-        'customer_paid_amount_gross',
-        'customer_outstanding_amount_gross',
-
-        # Vendor Bills NET/GROSS fields
-        'vendor_bills_total_net',
-        'vendor_bills_total_gross',
-
-        # Skonto fields
-        'customer_skonto_taken',
-        'vendor_skonto_received',
-
-        # Labor fields
-        'total_hours_booked',
-        'labor_costs',
-        'total_hours_booked_adjusted',
-        'labor_costs_adjusted',
-
-        # Other cost fields
-        'other_costs_net',
-
-        # Total cost fields
-        'total_costs_net',
-
-        # Profitability fields
-        'profit_loss_net',
-        'negative_difference_net',
-
-        # Basic info fields
-        'client_name',
-        'head_of_project',
-        'sequence'
-    ]
-
-    # Drop each column individually using safe identifier quoting
-    try:
-        from psycopg2 import sql
-        for field in fields_to_remove:
-            try:
-                # Use sql.Identifier to safely quote column names
-                query = sql.SQL("ALTER TABLE project_project DROP COLUMN IF EXISTS {}").format(
-                    sql.Identifier(field)
-                )
-                env.cr.execute(query)
-            except Exception as field_error:
-                _logger.warning(f"Could not drop column {field}: {field_error}")
-        _logger.info("Successfully removed project_statistic database columns")
-    except Exception as e:
-        _logger.warning(f"Error during database cleanup: {e}")
-
-    # 2. Remove view inheritance (Odoo will handle this automatically via cascade delete)
-    # The view inheritance record will be deleted when the module is uninstalled
-    # No manual cleanup needed - Odoo's ORM handles this
-
-    # 3. Verify standard project form still works
-    try:
-        # Check if standard project form view exists and is accessible
-        standard_form = env.ref('project.edit_project', raise_if_not_found=False)
-        if standard_form:
-            _logger.info("Standard project form verified after uninstallation")
-        else:
-            _logger.warning("Standard project form not found - may need manual verification")
-    except Exception as e:
-        _logger.warning(f"Error verifying standard project form: {e}")
-
-    env.cr.commit()
+    # Let Odoo handle all cleanup automatically
+    # DO NOT manually drop columns or delete fields - causes timing issues!
