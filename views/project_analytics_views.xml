@@ -31,8 +31,10 @@
                 <field name="has_analytic_account" invisible="1"/>
 
                 <!-- Sales Order Fields (confirmed orders) -->
+                <field name="has_sales_orders" invisible="1"/>
                 <field name="sale_order_amount_net" sum="Total Sales Orders (NET)" optional="show"
-                       widget="monetary" options="{'currency_field': 'currency_id'}" width="150px" string="Sales Orders (NET)"/>
+                       widget="monetary" options="{'currency_field': 'currency_id'}" width="150px" string="Sales Orders (NET)"
+                       decoration-warning="not has_sales_orders"/>
                 <field name="sale_order_tax_names" optional="hide" width="120px" string="SO Tax Codes"/>
 
                 <!-- Customer Invoice Fields - NET (primary) -->
@@ -231,6 +233,8 @@
                         </group>
                         <group string="Costs (NET)">
                             <field name="vendor_bills_total_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="adjusted_vendor_bill_amount" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"
+                                   string="Adj. Vendor Bills"/>
                             <field name="labor_costs_adjusted" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"
                                    string="Labor Costs (Adj.)"/>
                             <field name="total_costs_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
@@ -240,6 +244,11 @@
                                    decoration-success="profit_loss_net &gt; 0"
                                    decoration-danger="profit_loss_net &lt; 0"
                                    decoration-bf="1"/>
+                            <field name="current_calculated_profit_loss" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                   decoration-success="current_calculated_profit_loss &gt; 0"
+                                   decoration-danger="current_calculated_profit_loss &lt; 0"
+                                   decoration-bf="1"
+                                   string="Current P&amp;L (Calc.)"/>
                             <field name="negative_difference_net" widget="monetary" options="{'currency_field': 'currency_id'}"
                                    invisible="profit_loss_net &gt;= 0"/>
                         </group>
@@ -249,8 +258,13 @@
                         <page string="💰 Revenue &amp; Invoicing" name="revenue">
                             <group>
                                 <group string="Sales Orders (Confirmed)">
+                                    <field name="has_sales_orders" invisible="1"/>
                                     <field name="sale_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
                                     <field name="sale_order_tax_names" string="Tax Codes"/>
+                                    <div class="alert alert-warning" role="alert" invisible="has_sales_orders">
+                                        <strong>ℹ️ Fallback Value in Use</strong><br/>
+                                        No linked sales offer found. The value shown above is from the manual fallback field.
+                                    </div>
                                 </group>
                                 <group string="Manual Sales Order (Fallback)">
                                     <field name="manual_sales_order_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"/>
@@ -288,6 +302,8 @@
                             <group>
                                 <group string="Vendor Bills (NET - Main)">
                                     <field name="vendor_bills_total_net" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"/>
+                                    <field name="adjusted_vendor_bill_amount" widget="monetary" options="{'currency_field': 'currency_id'}" decoration-bf="1"
+                                           string="Adjusted Vendor Bills (with surcharge)"/>
                                     <field name="vendor_skonto_received" widget="monetary" options="{'currency_field': 'currency_id'}"
                                            string="Cash Discounts Received"/>
                                 </group>
@@ -298,6 +314,7 @@
                             </group>
                             <div class="alert alert-info mt-3" role="alert">
                                 <strong>💡 Info:</strong> Vendor bills are external costs from suppliers.
+                                The adjusted vendor bills include a surcharge factor (default 1.30 = 30% markup).
                                 Cash discounts reduce the effective costs.
                             </div>
                         </page>
@@ -354,6 +371,23 @@
                                            decoration-danger="profit_loss_net &lt; 0"
                                            decoration-bf="1"
                                            string="= Profit/Loss (NET)"/>
+                                </group>
+                                <group string="Current Calculated P&amp;L (Adjusted)">
+                                    <field name="customer_invoiced_amount_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           string="Total Invoiced"/>
+                                    <separator string="Adjusted Costs"/>
+                                    <field name="adjusted_vendor_bill_amount" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           string="- Adjusted Vendor Bills"/>
+                                    <field name="labor_costs_adjusted" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           string="- Adjusted Labor Costs"/>
+                                    <field name="other_costs_net" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           string="- Other Costs"/>
+                                    <separator/>
+                                    <field name="current_calculated_profit_loss" widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           decoration-success="current_calculated_profit_loss &gt; 0"
+                                           decoration-danger="current_calculated_profit_loss &lt; 0"
+                                           decoration-bf="1"
+                                           string="= Current P&amp;L (Calculated)"/>
                                 </group>
                                 <group string="Additional Metrics">
                                     <field name="negative_difference_net" widget="monetary" options="{'currency_field': 'currency_id'}"

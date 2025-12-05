@@ -74,6 +74,12 @@ class ProjectAnalytics(models.Model):
         default=0.0,
         help="Fallback sales order amount for projects without linked sales orders. This value will be used if no sales orders are found."
     )
+    has_sales_orders = fields.Boolean(
+        string='Has Sales Orders',
+        compute='_compute_financial_data',
+        store=True,
+        help="Indicates whether this project has linked sales orders. Used to show fallback indicators in views."
+    )
     sale_order_tax_names = fields.Char(
         string='SO Tax Codes',
         compute='_compute_financial_data',
@@ -143,6 +149,16 @@ class ProjectAnalytics(models.Model):
         store=True,
         aggregator='sum',
         help="Gross amount of vendor bills (with VAT/tax). This is the total cost including all taxes. Uses price_total from bill lines."
+    )
+
+    # Adjusted Vendor Bill field (with surcharge factor)
+    adjusted_vendor_bill_amount = fields.Float(
+        string='Adjusted Vendor Bills',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Vendor bills with surcharge factor applied. Formula: Vendor Bills (NET) × Surcharge Factor. "
+             "Default surcharge factor is 1.30 (30% markup). Used in profit/loss calculations."
     )
 
     # Skonto (Cash Discount) fields
@@ -225,6 +241,17 @@ class ProjectAnalytics(models.Model):
         help="Total project losses as a positive number, NET basis (Verluste Netto). This shows the absolute value of negative profit/loss. If profit/loss is positive, this field is 0. Useful for tracking and reporting total losses."
     )
 
+    # Current Calculated Profit/Loss (using adjusted values)
+    current_calculated_profit_loss = fields.Float(
+        string='Current P&L (Calculated)',
+        compute='_compute_financial_data',
+        store=True,
+        aggregator='sum',
+        help="Current calculated profit/loss using adjusted cost components. "
+             "Formula: Total Invoiced - Adjusted Vendor Bills - Adjusted Labor Costs - Adjusted Other Costs. "
+             "This provides real-time profitability including cost adjustments."
+    )
+
     @api.depends('has_analytic_account')
     def _compute_analytic_status_display(self):
         """
@@ -273,12 +300,14 @@ class ProjectAnalytics(models.Model):
 
             vendor_bills_total_net = 0.0
             vendor_bills_total_gross = 0.0
+            adjusted_vendor_bill_amount = 0.0
 
             customer_skonto_taken = 0.0
             vendor_skonto_received = 0.0
 
             sale_order_amount_net = 0.0
             sale_order_tax_names = ''
+            has_sales_orders = False
 
             total_hours_booked = 0.0
             labor_costs = 0.0
@@ -287,6 +316,7 @@ class ProjectAnalytics(models.Model):
 
             profit_loss_net = 0.0
             negative_difference_net = 0.0
+            current_calculated_profit_loss = 0.0
 
             # Get the analytic account associated with the project (projects plan ONLY)
             analytic_account = None
@@ -351,16 +381,19 @@ class ProjectAnalytics(models.Model):
                 project.customer_outstanding_amount_gross = 0.0
                 project.vendor_bills_total_net = 0.0
                 project.vendor_bills_total_gross = 0.0
+                project.adjusted_vendor_bill_amount = 0.0
                 project.customer_skonto_taken = 0.0
                 project.vendor_skonto_received = 0.0
                 project.sale_order_amount_net = 0.0
                 project.sale_order_tax_names = ''
+                project.has_sales_orders = False
                 project.total_hours_booked = 0.0
                 project.labor_costs = 0.0
                 project.other_costs_net = 0.0
                 project.total_costs_net = 0.0
                 project.profit_loss_net = 0.0
                 project.negative_difference_net = 0.0
+                project.current_calculated_profit_loss = 0.0
                 continue
 
             # 1. Calculate Customer Invoices (Revenue) - Both NET and GROSS
@@ -384,6 +417,7 @@ class ProjectAnalytics(models.Model):
             sales_order_data = self._get_sales_order_data(project)
             sale_order_amount_net = sales_order_data['amount_net']
             sale_order_tax_names = sales_order_data['tax_names']
+            has_sales_orders = sales_order_data['has_sales_orders']
 
             # 4. Calculate Labor Costs (Timesheets) - NET amount
             timesheet_data = self._get_timesheet_costs(analytic_account)
@@ -398,6 +432,14 @@ class ProjectAnalytics(models.Model):
                 )
             )
             labor_costs_adjusted = total_hours_booked_adjusted * general_hourly_rate
+
+            # 4b. Calculate Adjusted Vendor Bill Amount using surcharge factor from system parameters
+            vendor_bill_surcharge_factor = float(
+                self.env['ir.config_parameter'].sudo().get_param(
+                    'project_statistic.vendor_bill_surcharge_factor', default='1.30'
+                )
+            )
+            adjusted_vendor_bill_amount = vendor_bills_total_net * vendor_bill_surcharge_factor
 
             # 5. Calculate Other Costs (non-timesheet, non-bill analytic lines) - NET amount
             other_costs_net = self._get_other_costs_from_analytic(analytic_account)
@@ -416,6 +458,15 @@ class ProjectAnalytics(models.Model):
             profit_loss_net = adjusted_revenue_net - (adjusted_vendor_costs_net + total_costs_net)
             negative_difference_net = abs(min(0, profit_loss_net))
 
+            # 8. Calculate Current Calculated Profit/Loss using adjusted cost components
+            # Formula: Total Invoiced - Adjusted Vendor Bills - Adjusted Labor Costs - Adjusted Other Costs
+            current_calculated_profit_loss = (
+                customer_invoiced_amount_net
+                - adjusted_vendor_bill_amount
+                - labor_costs_adjusted
+                - other_costs_net
+            )
+
             # Update status fields (data available)
             project.has_analytic_account = True
             project.data_availability_status = 'available'
@@ -430,12 +481,14 @@ class ProjectAnalytics(models.Model):
 
             project.vendor_bills_total_net = vendor_bills_total_net
             project.vendor_bills_total_gross = vendor_bills_total_gross
+            project.adjusted_vendor_bill_amount = adjusted_vendor_bill_amount
 
             project.customer_skonto_taken = customer_skonto_taken
             project.vendor_skonto_received = vendor_skonto_received
 
             project.sale_order_amount_net = sale_order_amount_net
             project.sale_order_tax_names = sale_order_tax_names
+            project.has_sales_orders = has_sales_orders
 
             project.total_hours_booked = total_hours_booked
             project.labor_costs = labor_costs
@@ -446,6 +499,7 @@ class ProjectAnalytics(models.Model):
 
             project.profit_loss_net = profit_loss_net
             project.negative_difference_net = negative_difference_net
+            project.current_calculated_profit_loss = current_calculated_profit_loss
 
     def _get_customer_invoices_from_analytic(self, analytic_account):
         """
@@ -910,11 +964,13 @@ class ProjectAnalytics(models.Model):
             dict: {
                 'amount_net': float,  # Total untaxed amount (price_subtotal) or manual fallback
                 'tax_names': str,     # Comma-separated tax names
+                'has_sales_orders': bool,  # Whether linked sales orders exist
             }
         """
         result = {
             'amount_net': 0.0,
             'tax_names': '',
+            'has_sales_orders': False,
         }
 
         # Search for confirmed sales orders linked to this project
@@ -927,7 +983,10 @@ class ProjectAnalytics(models.Model):
         if not sales_orders:
             # FALLBACK: Use manual amount if no sales orders found
             result['amount_net'] = project.manual_sales_order_amount_net or 0.0
+            result['has_sales_orders'] = False
             return result
+
+        result['has_sales_orders'] = True
 
         # Collect tax names (use set to avoid duplicates)
         tax_names_set = set()
